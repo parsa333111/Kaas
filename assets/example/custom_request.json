@@ -1,0 +1,48 @@
+{
+    "name": "notepad",
+    "replicas": 1,
+    "image_address": "notepad",
+    "image_tag": "0.1.0",
+    "domain_address": "notepad.local",
+    "service_port": 8081,
+    "resources": [
+        {
+            "name": "cpu",
+            "limit": "100m"
+        },
+        {
+            "name": "memory",
+            "limit": "128Mi"
+        }
+    ],
+    "configs": [
+        {
+            "key": "LISTEN_ADDRESS",
+            "value": "0.0.0.0:8081"
+        },
+        {
+            "key": "PQ_HOST",
+            "value": "notepad-postgres"
+        },
+        {
+            "key": "PQ_PORT",
+            "value": "5432"
+        },
+        {
+            "key": "PQ_USER",
+            "value": "username"
+        },
+        {
+            "key": "PQ_DBNAME",
+            "value": "kaas"
+        }
+    ],
+    "secrets": [
+        {
+            "key": "PQ_PASSWORD",
+            "value": "password"
+        }
+    ],
+    "external_access": true,
+    "monitor": true
+}

@@ -1,0 +1,9 @@
+FROM python:3.9-slim
+
+WORKDIR /app
+
+COPY . .
+
+RUN pip install kubernetes psycopg2-binary requests
+
+CMD ["python", "./inspector.py"]

@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-deployment
+  namespace: {{ .Values.general.deployNamespace }}
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    meta.helm.sh/release-name: {{ .Values.general.releaseName }}
+    meta.helm.sh/release-namespace: {{ .Values.general.releaseNamespace }}
+spec:
+  replicas: {{ .Values.replicas.prometheus }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: prometheus
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: prometheus
+    spec:
+      containers:
+      - name: prometheus
+        image: {{ .Values.image.prometheus.url }}:{{ .Values.image.prometheus.tag }}
+        imagePullPolicy: {{ .Values.image.prometheus.pullPolicy }}
+        ports:
+        - containerPort: 9090
+        volumeMounts:
+        - name: prometheus-config-volume
+          mountPath: /etc/prometheus/prometheus.yml
+          subPath: prometheus.yml
+      volumes:
+      - name: prometheus-config-volume
+        configMap:
+          name: prometheus-config

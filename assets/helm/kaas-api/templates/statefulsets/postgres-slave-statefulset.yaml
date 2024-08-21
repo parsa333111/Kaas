@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-slave-statefulset
+  namespace: {{ .Values.general.deployNamespace }}
+  labels:
+    app.kubernetes.io/name: postgres-slave
+spec:
+  replicas: {{ .Values.replicas.slavePostgres }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres-slave
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgres-slave
+    spec:
+      volumes:
+      - name: postgres-persistent-storage
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+      containers:
+      - name: postgres
+        image: {{ .Values.image.postgres.url }}:{{ .Values.image.postgres.tag }}
+        imagePullPolicy: {{ .Values.image.postgres.pullPolicy }}
+        env:
+        - name: POSTGRESQL_REPLICATION_MODE
+          value: "slave"
+        - name: POSTGRESQL_MASTER_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: postgres_master_host
+        - name: POSTGRESQL_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: postgres_username
+        - name: POSTGRESQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: postgres_password
+        - name: POSTGRESQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: postgres_dbname
+        - name: POSTGRESQL_REPLICATION_USER
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: postgres_rep_username
+        - name: POSTGRESQL_REPLICATION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: postgres_rep_password
+        resources:
+          requests:
+            memory: {{ .Values.resources.requests.memory }}
+            cpu: {{ .Values.resources.requests.cpu }}
+          limits:
+            memory: {{ .Values.resources.limits.memory }}
+            cpu: {{ .Values.resources.limits.cpu }}
+        volumeMounts:
+        - mountPath: "/data"
+          name: postgres-persistent-storage
+        readinessProbe:
+          exec:
+            command:
+              - "pg_isready"
+              - "-U"
+              - "$POSTGRESQL_USERNAME"
+              - "-d"
+              - "$POSTGRESQL_DATABASE"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 5

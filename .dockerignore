@@ -1,0 +1,10 @@
+# assets directory
+/assets
+
+# Logs
+*.log
+
+# Ignoring unrelated files
+.gitignore
+build
+dockerfile

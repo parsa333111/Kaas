@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: inspector
+  namespace: kaas
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 120 
+      template:
+        spec:
+          containers:
+          - name: inspector
+            image: inspector:0.1.0
+            env:
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                configMapKeyRef:
+                  name: inspector-config
+                  key: target_namespace
+            - name: PQ_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config
+                  key: postgres_master_host
+            - name: PQ_DBNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config
+                  key: postgres_dbname
+            - name: PQ_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config
+                  key: postgres_username
+            - name: PQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name:  postgres-secret
+                  key: postgres_password
+          restartPolicy: OnFailure

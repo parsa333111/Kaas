@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  namespace: kaas
+data:
+  listen_address: "0.0.0.0:8081"

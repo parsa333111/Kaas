@@ -1,0 +1,133 @@
+#!/bin/bash
+
+build_images () {
+    docker build -t kaas-api:0.1.0 .
+    docker build -t notepad:0.1.0 ./tools/notepad/
+    docker build -t inspector:0.1.0 ./tools/inspector/
+}
+
+transfer_images () {
+    docker save kaas-api:0.1.0  | kind load docker-image kaas-api:0.1.0
+    docker save notepad:0.1.0   | kind load docker-image notepad:0.1.0
+    docker save inspector:0.1.0 | kind load docker-image inspector:0.1.0
+}
+
+transfer_all_images () {
+    docker save kaas-api:0.1.0              |   kind load docker-image kaas-api:0.1.0
+    docker save notepad:0.1.0               |   kind load docker-image notepad:0.1.0 
+    docker save inspector:0.1.0             |   kind load docker-image inspector:0.1.0
+    docker save prom/prometheus:v2.52.0     |   kind load docker-image prom/prometheus:v2.52.0
+    docker save grafana/grafana:10.4.3      |   kind load docker-image grafana/grafana:10.4.3
+    docker save bitnami/postgresql:latest   |   kind load docker-image bitnami/postgresql:latest
+    docker save postgres:16.3-alpine3.20    |   kind load docker-image postgres:16.3-alpine3.20
+}
+
+config () {
+    sudo    sysctl -w vm.max_map_count=262144
+    kubectl create namespace kaas
+}
+
+initialize_components () {
+    kubectl apply -f assets/kubernetes/etc/role-binding.yaml
+    kubectl apply -f assets/kubernetes/volumes
+    kubectl apply -f assets/kubernetes/configs
+    kubectl apply -f assets/kubernetes/statefulsets
+    kubectl apply -f assets/kubernetes/deployments
+    kubectl apply -f assets/kubernetes/services
+    kubectl apply -f assets/kubernetes/etc/api-hpa.yaml
+    kubectl apply -f assets/kubernetes/etc/kaas-ingress.yaml
+    kubectl apply -f assets/kubernetes/etc/inspector-cronjob.yaml
+}
+
+soft_delete_components () {
+    kubectl delete cronjobs     --all   --namespace kaas
+    kubectl delete ingress      --all   --namespace kaas
+    kubectl delete hpa          --all   --namespace kaas
+    kubectl delete services     --all   --namespace kaas
+    kubectl delete deployments  --all   --namespace kaas
+    kubectl delete statefulsets --all   --namespace kaas
+
+    kubectl delete all          --all   --namespace default
+    kubectl delete secret       --all   --namespace default
+    kubectl delete configmap    --all   --namespace default
+    kubectl delete ingress      --all   --namespace default
+    kubectl delete pvc          --all   --namespace default
+    kubectl delete pv           --all   --namespace default
+}
+
+hard_delete_components () {
+    soft_delete_components
+    kubectl delete secret       --all   --namespace kaas
+    kubectl delete configmap    --all   --namespace kaas
+    kubectl delete pvc          --all   --namespace kaas
+    kubectl delete pv           --all   --namespace kaas
+    kubectl delete ClusterRoleBinding admin-access
+    rm      /mnt/data/*
+}
+
+install_helm () {
+    helm install kaas assets/helm/kaas-api
+}
+
+upgrade_helm () {
+    helm upgrade kaas assets/helm/kaas-api
+}
+
+uninstall_helm () {
+    helm uninstall kaas
+}
+
+package_helm () {
+    helm package assets/helm/kaas-api/
+}
+
+command=$1
+
+if [[ $command == "--build_images" ]]
+then
+    build_images
+elif [[ $command == "--transfer_images" ]]
+then
+    transfer_images
+elif [[ $command == "--transfer_all_images" ]]
+then
+    transfer_all_image
+elif [[ $command == "--config" ]]
+then
+    config
+elif [[ $command == "--initialize" ]] || [[ $command == "-in" ]]
+then
+    initialize_components
+elif [[ $command == "--hard_delete" ]] || [[ $command == "-hd" ]]
+then
+    hard_delete_components
+elif [[ $command == "--soft_delete" ]] || [[ $command == "-sd" ]]
+then
+    soft_delete_components
+elif [[ $command == "--install" ]] || [[ $command == "-i" ]]
+then
+    install_helm
+elif [[ $command == "--upgrade" ]] || [[ $command == "-up" ]]
+then
+    upgrade_helm
+elif [[ $command == "--uninstall" ]] || [[ $command == "-un" ]]
+then
+    uninstall_helm
+elif [[ $command == "--package" ]] || [[ $command == "-p" ]]
+then
+    package_helm
+else
+    echo "
+    to build the docker images      -->     --build_images
+    to transfer images to kind      -->     --transfer_images
+    to transfer all images to kind  -->     --transfer_all_images
+    to config vm requirements       -->     --config
+    to initialize components        -->     --initialize            [-in]
+    to hard delete components       -->     --hard_delete           [-hd]
+    to soft delete components       -->     --soft_delete           [-sd]
+    to install using helm           -->     --install               [-i]
+    to upgrade using helm           -->     --upgrade               [-up]
+    to uninstall using helm         -->     --uninstall             [-un]
+    to package using helm           -->     --package               [-p]
+    "
+fi

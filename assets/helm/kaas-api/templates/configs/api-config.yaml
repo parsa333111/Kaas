@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  namespace: {{ .Values.general.deployNamespace }}
+data:
+  listen_address: {{ .Values.api.listenAddress }}

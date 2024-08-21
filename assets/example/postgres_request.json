@@ -1,0 +1,14 @@
+{
+    "name": "notepad-postgres",
+    "resources": [
+        {
+            "name": "cpu",
+            "limit": "100m"
+        },
+        {
+            "name": "memory",
+            "limit": "128Mi"
+        }
+    ],
+    "external_access": true
+}

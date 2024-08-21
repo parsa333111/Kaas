@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-deployment
+  namespace: {{ .Values.general.deployNamespace }}
+  labels:
+    app.kubernetes.io/name: api
+    app.kubernetes.io/managed-by: Helm
+  annotations:
+    meta.helm.sh/release-name: {{ .Values.general.releaseName }}
+    meta.helm.sh/release-namespace: {{ .Values.general.releaseNamespace }}
+spec:
+  replicas: {{ .Values.replicas.api }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: api
+    spec:
+      containers:
+      - name: api
+        image: {{ .Values.image.api.url }}:{{ .Values.image.api.tag }}
+        imagePullPolicy: {{ .Values.image.api.pullPolicy }}
+        resources:
+          requests:
+            cpu: {{ .Values.resources.requests.cpu }}
+            memory: {{ .Values.resources.requests.memory }}
+          limits:
+            cpu: {{ .Values.resources.limits.cpu }}
+            memory: {{ .Values.resources.limits.memory }}
+        ports:
+        - containerPort: 8081
+        env:
+        - name: LISTEN_ADDRESS
+          valueFrom:
+            configMapKeyRef:
+              name: api-config
+              key: listen_address
+        - name: PQ_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: postgres_port
+        - name: PQ_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: postgres_slave_host
+        - name: PQ_DBNAME
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: postgres_dbname
+        - name: PQ_USER
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: postgres_username
+        - name: PQ_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: postgres_password
+        startupProbe:
+          exec:
+            command:
+              - cat
+              - /tmp/startup-complete
+          initialDelaySeconds: 80
+          periodSeconds: 10
+          failureThreshold: 10
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 90
+          periodSeconds: 10
+          failureThreshold: 5
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 100
+          periodSeconds: 10
+          failureThreshold: 5

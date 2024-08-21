@@ -1,0 +1,5 @@
+# Logs
+*.log
+
+# Ignoring unrelated files
+dockerfile

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: {{ .Values.general.deployNamespace }}
+data:
+  postgres_port: "5432"
+  postgres_dbname: {{ .Values.postgres.dbName }}
+  postgres_username: {{ .Values.postgres.username }}
+  postgres_rep_username: {{ .Values.postgres.replicationUsername }}
+  postgres_slave_host: {{ .Values.postgres.slaveHost }}
+  postgres_master_host: {{ .Values.postgres.masterHost }}

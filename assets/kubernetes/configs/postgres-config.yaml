@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: kaas
+data:
+  postgres_port: "5432"
+  postgres_dbname: "kaas"
+  postgres_username: username
+  postgres_rep_username: username_rep
+  postgres_slave_host: "postgres-slave.kaas.svc.cluster.local"
+  postgres_master_host: "postgres-master.kaas.svc.cluster.local"

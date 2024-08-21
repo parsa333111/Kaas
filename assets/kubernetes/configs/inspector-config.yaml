@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: inspector-config
+  namespace: kaas
+data:
+  target_namespace: "default"

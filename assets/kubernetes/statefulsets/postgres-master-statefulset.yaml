@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-master-statefulset
+  namespace: kaas
+  labels:
+    app.kubernetes.io/name: postgres-master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres-master
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: postgres-master
+    spec:
+      volumes:
+      - name: postgres-persistent-storage
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+      containers:
+      - name: postgres
+        image: bitnami/postgresql:latest
+        imagePullPolicy: Never
+        env:
+        - name: POSTGRESQL_REPLICATION_MODE
+          value: "master"
+        - name: POSTGRESQL_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: postgres_username
+        - name: POSTGRESQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: postgres_password
+        - name: POSTGRESQL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: postgres_dbname
+        - name: POSTGRESQL_REPLICATION_USER
+          valueFrom:
+            configMapKeyRef:
+              name: postgres-config
+              key: postgres_rep_username
+        - name: POSTGRESQL_REPLICATION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: postgres_rep_password
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1"
+        volumeMounts:
+        - mountPath: "/data"
+          name: postgres-persistent-storage
+        readinessProbe:
+          exec:
+            command:
+              - "pg_isready"
+              - "-U"
+              - "$POSTGRESQL_USERNAME"
+              - "-d"
+              - "$POSTGRESQL_DATABASE"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 5
+        lifecycle:
+          postStart:
+            exec:
+              command: ["/bin/sh", "-c", "
+                until pg_isready -U $POSTGRESQL_USERNAME -d $POSTGRESQL_DATABASE -h localhost; do sleep 5; done &&
+                PGPASSWORD=$POSTGRESQL_PASSWORD psql -U $POSTGRESQL_USERNAME -d $POSTGRESQL_DATABASE -c '
+                  CREATE TABLE IF NOT EXISTS HealthCheck (
+                  id serial PRIMARY KEY,
+                  app_name varchar(64) NOT NULL,
+                  failure_count integer DEFAULT 0,
+                  success_count integer DEFAULT 0,
+                  last_failure varchar(64) NOT NULL,
+                  last_success varchar(64) NOT NULL,
+                  created_at varchar(64) DEFAULT NOW()::varchar,
+                  UNIQUE (app_name));'"]
